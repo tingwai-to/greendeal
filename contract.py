@@ -11,11 +11,12 @@ from boa.blockchain.vm.Neo.Action import RegisterAction
 from boa.blockchain.vm.Neo.Runtime import Log, GetTrigger, CheckWitness
 from boa.blockchain.vm.Neo.Storage import Get, GetContext, Put, Delete
 # from boa.blockchain.vm.Neo.Transaction import GetHash
-from boa.blockchain.vm.Neo.TransactionAttribute import *
+# from boa.blockchain.vm.Neo.TransactionAttribute import *
 # from boa.blockchain.vm.Neo.TransactionType import *
 from boa.blockchain.vm.Neo.TriggerType import Application, Verification
 # from boa.blockchain.vm.Neo.Validator import *
 from boa.blockchain.vm.System.ExecutionEngine import GetScriptContainer
+from boa.code.builtins import sha256, concat
 
 OWNER = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
@@ -33,14 +34,15 @@ def Main(operation, args):
     # vendor action
     if operation == 'create':
         if l == 6:
-            title = args[0]
-            description = args[1]
-            price_per_person = args[2]
-            expiration = args[3]
-            min_headcount = args[4]
-            max_headcount = args[5]
+            promotion_id = args[0]
+            title = args[1]
+            description = args[2]
+            price_per_person = args[3]
+            expiration = args[4]
+            min_headcount = args[5]
+            max_headcount = args[6]
 
-            CreatePromotion(title, description, price_per_person, expiration, min_headcount, max_headcount)
+            CreatePromotion(promotion_id, title, description, price_per_person, expiration, min_headcount, max_headcount)
             Log('Promotion created')
 
         else:
@@ -84,7 +86,7 @@ def Main(operation, args):
     return False
 
 
-def CreatePromotion(title, description, price_per_person, expiration, min_headcount, max_headcount):
+def CreatePromotion(promotion_id, title, description, price_per_person, expiration, min_headcount, max_headcount):
     if price_per_person < 0:
         Log('price_per_person must be positive')
         return False
@@ -97,14 +99,27 @@ def CreatePromotion(title, description, price_per_person, expiration, min_headco
         Log('min_headcount must be less than or equal to max_headcount')
         return False
 
+    # TODO: check expiration is greater than now
+
+    promotion_hash = sha256(promotion_id)
+
+    title_key = concat(promotion_hash, title)
+    description_key = concat(promotion_hash, description)
+    price_per_person_key = concat(promotion_hash, price_per_person)
+    expiration_key = concat(promotion_hash, expiration)
+    min_headcount_key = concat(promotion_hash, min_headcount)
+    max_headcount_key = concat(promotion_hash, max_headcount)
+    remaining_key = concat(promotion_hash, 'remaining')
+
+
     context = GetContext()
-    Put(context, 'title', title)
-    Put(context, 'description', description)
-    Put(context, 'price_per_person', price_per_person)
-    Put(context, 'expiration', expiration)
-    Put(context, 'min_headcount', min_headcount)
-    Put(context, 'max_headcount', max_headcount)
-    Put(context, 'remaining', max_headcount)
+    Put(context, title_key, title)
+    Put(context, description_key, description)
+    Put(context, price_per_person_key, price_per_person)
+    Put(context, expiration_key, expiration)
+    Put(context, min_headcount_key, min_headcount)
+    Put(context, max_headcount_key, max_headcount)
+    Put(context, remaining_key, max_headcount)
 
     return True
 
@@ -179,4 +194,3 @@ def Inspect(promotion_id):
 
 def VendorClaim(promotion_id):
     context = GetContext()
-    # TODO: write logic for vendor to claim funds if headcount met and after deadline
