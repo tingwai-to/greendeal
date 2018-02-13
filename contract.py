@@ -3,7 +3,7 @@ from boa.blockchain.vm.Neo.Action import RegisterAction
 # from boa.blockchain.vm.Neo.App import *
 # from boa.blockchain.vm.Neo.Asset import *
 # from boa.blockchain.vm.Neo.Block import *
-# from boa.blockchain.vm.Neo.Blockchain import *
+from boa.blockchain.vm.Neo.Blockchain import GetHeight, GetHeader
 # from boa.blockchain.vm.Neo.Contract import *
 # from boa.blockchain.vm.Neo.Header import *
 # from boa.blockchain.vm.Neo.Input import *
@@ -99,7 +99,14 @@ def CreatePromotion(promotion_id, title, description, price_per_person, expirati
         Log('min_headcount must be less than or equal to max_headcount')
         return False
 
-    # TODO: check expiration is greater than now
+    height = GetHeight()
+    current_block = GetHeader(height)
+    time = current_block.Timestamp
+
+    if time > expiration:
+        Log('expiration must be greater than current time. '
+            'Note: use unix GMT time')
+        return False
 
     promotion_hash = sha256(promotion_id)
 
@@ -110,7 +117,6 @@ def CreatePromotion(promotion_id, title, description, price_per_person, expirati
     min_headcount_key = concat(promotion_hash, min_headcount)
     max_headcount_key = concat(promotion_hash, max_headcount)
     remaining_key = concat(promotion_hash, 'remaining')
-
 
     context = GetContext()
     Put(context, title_key, title)
