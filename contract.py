@@ -153,6 +153,8 @@ def DeletePromo(promo_id):
 
 
 def BuyPromo(promo_id, quantity):
+    # Deposit funds and purchase <quantity> seats in promo
+
     promo_hash = sha1(promo_id)
 
     context = GetContext()
@@ -222,7 +224,18 @@ def ClaimFunds(promo_id):
 
     context = GetContext()
 
-    # TODO: check if min headcount met
+    promo_hash = sha1(promo_id)
+    min_headcount_key = concat(promo_hash, 'min_headcount')
+    min_headcount = Get(context, min_headcount_key)
+    max_headcount_key = concat(promo_hash, 'max_headcount')
+    max_headcount = Get(context, max_headcount_key)
+    remaining_key = concat(promo_hash, 'remaining')
+    remaining = Get(context, remaining_key)
+
+    # check if enough people bought promo
+    if max_headcount - remaining < min_headcount:
+        Log('Not enough promos sold, purchasers can claim their deposit.')
+        return False
 
     # TODO: claim funds
     pass
