@@ -81,6 +81,7 @@ def Main(operation, args):
 
             BuyPromo(promo_id, quantity)
             Log('Promo successfully purchased')
+
         else:
             return False
 
@@ -89,6 +90,7 @@ def Main(operation, args):
         if l == 1:
             promo_id = args[0]
             Details(promo_id)
+
         else:
             return False
 
@@ -170,14 +172,8 @@ def BuyPromo(promo_id, quantity):
         Log(remaining)
         return False
 
-    height = GetHeight()
-    current_block = GetHeader(height)
-    time = current_block.Timestamp
-
-    expiration_key = concat(promo_hash, 'expiration')
-    expiration = Get(context, expiration_key)
-
-    if time > expiration:
+    expired = IsPromoExpired(promo_id)
+    if expired:
         Log('Promo has expired!')
         return False
 
@@ -202,13 +198,6 @@ def Details(promo_id):
     keys = GetLookupKeys(promo_id)
 
     context = GetContext()
-    title = Get(context, keys[0])
-    description = Get(context, keys[1])
-    price_per_person = Get(context, keys[2])
-    expiration = Get(context, keys[3])
-    min_headcount = Get(context, keys[4])
-    max_headcount = Get(context, keys[5])
-    remaining = Get(context, keys[6])
 
     Log('Title, Description, Price/person, Expiration Date, Min Headcount, '
         'Max Headcount, Remaining')
@@ -222,11 +211,18 @@ def Details(promo_id):
 def ClaimFunds(promo_id):
     # Let creator of promo claim funds
 
-    # TODO: check if time past expiration
+    expired = IsPromoExpired(promo_id)
+    if not expired:
+        Log('Promo not over yet! Cannot claim funds yet')
+        return False
 
     authorize = IsPromoCreator()
+    if not authorize:
+        Log('Not promo creator, cannot claim funds.')
 
     context = GetContext()
+
+    # TODO: check if min headcount met
 
     # TODO: claim funds
     pass
@@ -252,3 +248,19 @@ def GetLookupKeys(promo_id):
 def IsPromoCreator():
     # TODO
     pass
+
+def IsPromoExpired(promo_id):
+    # Checks if promotion has expired or not
+
+    promo_hash = sha1(promo_id)
+
+    context = GetContext()
+    expiration_key = concat(promo_hash, 'expiration')
+    expiration = Get(context, expiration_key)
+
+    height = GetHeight()
+    current_block = GetHeader(height)
+    time = current_block.Timestamp
+
+    expired = time > expiration
+    return expired
