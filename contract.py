@@ -16,7 +16,7 @@ from boa.blockchain.vm.Neo.Storage import Get, GetContext, Put, Delete
 from boa.blockchain.vm.Neo.TriggerType import Application, Verification
 # from boa.blockchain.vm.Neo.Validator import *
 from boa.blockchain.vm.System.ExecutionEngine import GetScriptContainer
-from boa.code.builtins import sha256, concat
+from boa.code.builtins import sha1, concat
 
 OWNER = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
@@ -34,7 +34,7 @@ def Main(operation, args):
     # vendor action
     if operation == 'create':
         if l == 6:
-            promotion_id = args[0]
+            promo_id = args[0]
             title = args[1]
             description = args[2]
             price_per_person = args[3]
@@ -42,8 +42,8 @@ def Main(operation, args):
             min_headcount = args[5]
             max_headcount = args[6]
 
-            CreatePromotion(promotion_id, title, description, price_per_person, expiration, min_headcount, max_headcount)
-            Log('Promotion created')
+            CreatePromo(promo_id, title, description, price_per_person, expiration, min_headcount, max_headcount)
+            Log('Promo created')
 
         else:
             return False
@@ -51,33 +51,46 @@ def Main(operation, args):
     # vendor action
     elif operation == 'delete':
         if l == 1:
-            promotion_id = args[0]
+            promo_id = args[0]
 
-            RefundAll()
-            DeletePromotion()
-            Log('Promotion deleted, all funds returned')
+            authorize = IsPromoCreator()
+            if authorize:
+                RefundAll()
+                DeletePromo(promo_id)
+                Log('Promo deleted, all funds returned')
+            else:
+                Log('Permission denied, not creator of promo')
 
         else:
             return False
 
     # vendor action
     elif operation == 'claim':
-        VendorClaim()
+        if l == 1:
+            promo_id = args[0]
+            ClaimFunds(promo_id)
+
+        else:
+            return False
 
     # consumer action
     elif operation == 'buy':
         if l == 2:
-            promotion_id = args[0]
+            promo_id = args[0]
             quantity = args[1]
 
-            BuyPromotion(promotion_id, quantity)
-            Log('Promotion successfully purchased')
+            BuyPromo(promo_id, quantity)
+            Log('Promo successfully purchased')
         else:
             return False
 
     # consumer/vendor action
-    elif operation == 'inspect':
-        Inspect(promotion_id)
+    elif operation == 'details':
+        if l == 1:
+            promo_id = args[0]
+            Details(promo_id)
+        else:
+            return False
 
     else:
         Log('Invalid operation')
@@ -86,7 +99,7 @@ def Main(operation, args):
     return False
 
 
-def CreatePromotion(promotion_id, title, description, price_per_person, expiration, min_headcount, max_headcount):
+def CreatePromo(promo_id, title, description, price_per_person, expiration, min_headcount, max_headcount):
     if price_per_person < 0:
         Log('price_per_person must be positive')
         return False
@@ -108,47 +121,44 @@ def CreatePromotion(promotion_id, title, description, price_per_person, expirati
             'Note: use unix GMT time')
         return False
 
-    promotion_hash = sha256(promotion_id)
-
-    title_key = concat(promotion_hash, title)
-    description_key = concat(promotion_hash, description)
-    price_per_person_key = concat(promotion_hash, price_per_person)
-    expiration_key = concat(promotion_hash, expiration)
-    min_headcount_key = concat(promotion_hash, min_headcount)
-    max_headcount_key = concat(promotion_hash, max_headcount)
-    remaining_key = concat(promotion_hash, 'remaining')
+    keys = GetLookupKeys(promo_id)
 
     context = GetContext()
-    Put(context, title_key, title)
-    Put(context, description_key, description)
-    Put(context, price_per_person_key, price_per_person)
-    Put(context, expiration_key, expiration)
-    Put(context, min_headcount_key, min_headcount)
-    Put(context, max_headcount_key, max_headcount)
-    Put(context, remaining_key, max_headcount)
+    Put(context, keys[0], title)
+    Put(context, keys[1], description)
+    Put(context, keys[2], price_per_person)
+    Put(context, keys[3], expiration)
+    Put(context, keys[4], min_headcount)
+    Put(context, keys[5], max_headcount)
+    Put(context, keys[6], max_headcount)  # remaining_headcount
 
     return True
 
 
-def DeletePromotion():
+def DeletePromo(promo_id):
+    keys = GetLookupKeys(promo_id)
+
     context = GetContext()
-    Delete(context, 'title')
-    Delete(context, 'description')
-    Delete(context, 'price_per_person')
-    Delete(context, 'expiration')
-    Delete(context, 'min_headcount')
-    Delete(context, 'max_headcount')
-    Delete(context, 'remaining')
+    Delete(context, keys[0])
+    Delete(context, keys[1])
+    Delete(context, keys[2])
+    Delete(context, keys[3])
+    Delete(context, keys[4])
+    Delete(context, keys[5])
+    Delete(context, keys[6])
 
     return True
 
 
-def BuyPromotion(promotion_id, quantity):
+def BuyPromo(promo_id, quantity):
+    promo_hash = sha1(promo_id)
+
     context = GetContext()
-    remaining = Get(context, 'remaining')
+    remaining_key = concat(promo_hash, 'remaining')
+    remaining = Get(context, remaining_key)
 
     if remaining == 0:
-        Log('Promotion has sold out!')
+        Log('Promo has sold out!')
         return False
 
     if quantity < 1:
@@ -160,10 +170,20 @@ def BuyPromotion(promotion_id, quantity):
         Log(remaining)
         return False
 
-    # TODO: check timestamp and if expired
+    height = GetHeight()
+    current_block = GetHeader(height)
+    time = current_block.Timestamp
+
+    expiration_key = concat(promo_hash, 'expiration')
+    expiration = Get(context, expiration_key)
+
+    if time > expiration:
+        Log('Promo has expired!')
+        return False
 
     remaining -= quantity
-    Put(context, 'remaining', remaining)
+
+    Put(context, remaining_key, remaining)
 
 #     TODO: implement subtracting funds from account
 
@@ -175,28 +195,60 @@ def RefundAll():
     pass
 
 
-def Inspect(promotion_id):
+def Details(promo_id):
+    # Prints details of promo:
+    # Title, Description, Price/person, Expiration Date, Min Headcount,
+    # Max Headcount, Remaining
+    keys = GetLookupKeys(promo_id)
+
     context = GetContext()
-    title = Get(context, 'title')
-    description = Get(context, 'description')
-    price_per_person = Get(context, 'price_per_person')
-    expiration = Get(context, 'expiration')
-    min_headcount = Get(context, 'min_headcount')
-    max_headcount = Get(context, 'max_headcount')
-    remaining = Get(context, 'remaining')
+    title = Get(context, keys[0])
+    description = Get(context, keys[1])
+    price_per_person = Get(context, keys[2])
+    expiration = Get(context, keys[3])
+    min_headcount = Get(context, keys[4])
+    max_headcount = Get(context, keys[5])
+    remaining = Get(context, keys[6])
 
     Log('Title, Description, Price/person, Expiration Date, Min Headcount, '
         'Max Headcount, Remaining')
-    Log(title)
-    Log(description)
-    Log(price_per_person)
-    Log(expiration)
-    Log(min_headcount)
-    Log(max_headcount)
-    Log(remaining)
+    for key in keys:
+        value = Get(context, key)
+        Log(value)
 
     return True
 
 
-def VendorClaim(promotion_id):
+def ClaimFunds(promo_id):
+    # Let creator of promo claim funds
+
+    # TODO: check if time past expiration
+
+    authorize = IsPromoCreator()
+
     context = GetContext()
+
+    # TODO: claim funds
+    pass
+
+def GetLookupKeys(promo_id):
+    # Gets promo's keys to get/set values in storage
+
+    promo_hash = sha1(promo_id)
+
+    title_key = concat(promo_hash, 'title')
+    description_key = concat(promo_hash, 'description')
+    price_per_person_key = concat(promo_hash, 'price_per_person')
+    expiration_key = concat(promo_hash, 'expiration')
+    min_headcount_key = concat(promo_hash, 'min_headcount')
+    max_headcount_key = concat(promo_hash, 'max_headcount')
+    remaining_key = concat(promo_hash, 'remaining')
+
+    keys = [title_key, description_key, price_per_person_key, expiration_key,
+            min_headcount_key, max_headcount_key, remaining_key]
+
+    return keys
+
+def IsPromoCreator():
+    # TODO
+    pass
