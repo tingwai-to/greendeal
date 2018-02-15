@@ -126,13 +126,14 @@ def CreatePromo(promo_id, title, description, price_per_person, expiration, min_
     keys = GetLookupKeys(promo_id)
 
     context = GetContext()
-    Put(context, keys[0], title)
-    Put(context, keys[1], description)
-    Put(context, keys[2], price_per_person)
-    Put(context, keys[3], expiration)
-    Put(context, keys[4], min_headcount)
-    Put(context, keys[5], max_headcount)
-    Put(context, keys[6], max_headcount)  # remaining_headcount
+    Put(context, keys[0], 1)  # promo_exists
+    Put(context, keys[1], title)
+    Put(context, keys[2], description)
+    Put(context, keys[3], price_per_person)
+    Put(context, keys[4], expiration)
+    Put(context, keys[5], min_headcount)
+    Put(context, keys[6], max_headcount)
+    Put(context, keys[7], max_headcount)  # remaining_headcount
 
     return True
 
@@ -141,13 +142,9 @@ def DeletePromo(promo_id):
     keys = GetLookupKeys(promo_id)
 
     context = GetContext()
-    Delete(context, keys[0])
-    Delete(context, keys[1])
-    Delete(context, keys[2])
-    Delete(context, keys[3])
-    Delete(context, keys[4])
-    Delete(context, keys[5])
-    Delete(context, keys[6])
+    Delete(context, keys[0])  # delete promo_exists
+
+    # TODO: allow purchasers to claim refund
 
     return True
 
@@ -200,6 +197,10 @@ def Details(promo_id):
     keys = GetLookupKeys(promo_id)
 
     context = GetContext()
+
+    promo_exists = Get(context, keys[0])
+    if not promo_exists:
+        Log('Promo does not exist')
 
     Log('Title, Description, Price/person, Expiration Date, Min Headcount, '
         'Max Headcount, Remaining')
@@ -258,8 +259,8 @@ def GetLookupKeys(promo_id):
     max_headcount_key = concat(promo_hash, 'max_headcount')
     remaining_key = concat(promo_hash, 'remaining')
 
-    keys = [title_key, description_key, price_per_person_key, expiration_key,
-            min_headcount_key, max_headcount_key, remaining_key]
+    keys = [promo_hash, title_key, description_key, price_per_person_key,
+            expiration_key, min_headcount_key, max_headcount_key, remaining_key]
 
     return keys
 
