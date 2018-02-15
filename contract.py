@@ -225,6 +225,8 @@ def ClaimFunds(promo_id):
     context = GetContext()
 
     promo_hash = sha1(promo_id)
+    price_per_person_key = concat(promo_hash, 'price_per_person')
+    price_per_person = Get(context, price_per_person_key)
     min_headcount_key = concat(promo_hash, 'min_headcount')
     min_headcount = Get(context, min_headcount_key)
     max_headcount_key = concat(promo_hash, 'max_headcount')
@@ -232,12 +234,15 @@ def ClaimFunds(promo_id):
     remaining_key = concat(promo_hash, 'remaining')
     remaining = Get(context, remaining_key)
 
+    purchased_headcount = max_headcount - remaining
+
     # check if enough people bought promo
-    if max_headcount - remaining < min_headcount:
+    if purchased_headcount < min_headcount:
         Log('Not enough promos sold, purchasers can claim their deposit.')
         return False
 
     # TODO: claim funds
+    withdraw_amount = purchased_headcount * price_per_person
     pass
 
 def GetLookupKeys(promo_id):
