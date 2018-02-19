@@ -1,7 +1,7 @@
 from boa.blockchain.vm.Neo.Blockchain import GetHeight, GetHeader
 from boa.blockchain.vm.Neo.Runtime import Log, GetTrigger, CheckWitness
 from boa.blockchain.vm.Neo.Storage import Get, GetContext, Put, Delete
-from boa.code.builtins import sha1, concat
+from boa.code.builtins import concat
 
 
 def Main(operation, args):
@@ -34,7 +34,7 @@ def Main(operation, args):
                 Log('Exiting')
                 return False
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     # seller action
@@ -46,10 +46,12 @@ def Main(operation, args):
             if authorize:
                 DeletePromo(promo_id)
                 Log('Promo successfully deleted')
+                return True
             else:
                 Log('Permission denied')
+                return False
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     # seller action
@@ -61,10 +63,12 @@ def Main(operation, args):
             if authorize:
                 ClaimFunds(promo_id)
                 Log('Promo funds successfully claimed')
+                return True
             else:
                 Log('Permission denied')
+                return False
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     # buyer action
@@ -83,7 +87,7 @@ def Main(operation, args):
                 Log('Exiting')
                 return False
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     # buyer action
@@ -92,14 +96,16 @@ def Main(operation, args):
             buyer = args[0]
             promo_id = args[1]
 
-            success = ClaimRefund(buyer, promo_id)
+            success = RefundPromo(buyer, promo_id)
 
             if success:
                 Log('Refund claimed successfully')
+                return True
             else:
                 Log('Exiting')
+                return False
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     # buyer/seller action
@@ -107,14 +113,14 @@ def Main(operation, args):
         if len(args) == 1:
             promo_id = args[0]
             Details(promo_id)
+            return True
         else:
-            Log('incorrect number of arguments')  # TODO: customize log statement
+            Log('incorrect number of arguments')
             return False
 
     else:
         Log('operation not found')
-
-    return True
+        return False
 
 
 def CreatePromo(creator, promo_id, title, description, price_per_person, expiration, min_headcount, max_headcount):
@@ -189,7 +195,7 @@ def BuyPromo(buyer, promo_id, quantity):
     is also stored in case of refund.
 
     Args:
-        buyer (str): public key
+        buyer (str): buyer's public key
         promo_id (str):
         quantity (int):
 
@@ -227,7 +233,11 @@ def BuyPromo(buyer, promo_id, quantity):
         Log('Promo has expired!')
         return False
 
-    # TODO: check if purchasing again
+    buyer_key = concat(promo_id, buyer)
+    purchased_quantity = Get(context, buyer_key)
+    if purchased_quantity:
+        Log('Promo already claimed using given public key')
+        return False
 
     purchased_headcount += quantity
     Put(context, purchased_headcount_key, purchased_headcount)
@@ -235,7 +245,7 @@ def BuyPromo(buyer, promo_id, quantity):
     buyer_key = concat(promo_id, buyer)
     Put(context, buyer_key, quantity)
 
-    # TODO: implement subtracting funds from account
+    # TODO: subtract funds from account
 
     return True
 
@@ -263,8 +273,48 @@ def ClaimFunds(promo_id):
     return True
 
 
-def ClaimRefund(buyer, promo_id):
-    # TODO
+def RefundPromo(buyer, promo_id):
+    """
+    Refund all of buyer's purchased tickets for specified promo
+
+    Args:
+        buyer (str): buyer's public key
+        promo_id (str):
+
+    Returns:
+        (bool): True if successfully refunded
+    """
+    promo_exists = IsPromoExist(promo_id)
+    if not promo_exists:
+        Log('Promo not found')
+        return False
+
+    expired = IsPromoExpired(promo_id)
+    if expired:
+        Log('Promo refund deadline has passed')
+        return False
+
+    context = GetContext()
+    buyer_key = concat(promo_id, buyer)
+    refund_quantity = Get(context, buyer_key)
+    if not refund_quantity:
+        Log('No purchases were made using given public key')
+        return False
+
+    Delete(context, buyer_key)
+
+    price_per_person_key = concat(promo_id, 'price_per_person')
+    price_per_person = Get(context, price_per_person_key)
+
+    refund_amount = refund_quantity * price_per_person
+    # TODO: refund to wallet
+
+    # update purchased_headcount
+    purchased_headcount_key = concat(promo_id, 'purchased_headcount')
+    purchased_headcount = Get(context, purchased_headcount_key)
+    purchased_headcount -= refund_quantity
+    Put(context, purchased_headcount_key, purchased_headcount)
+
     return True
 
 
