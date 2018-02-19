@@ -263,12 +263,31 @@ def DeletePromo(promo_id):
 
 
 def ClaimFunds(promo_id):
-    # TODO
+    promo_exists = IsPromoExist(promo_id)
+    if not promo_exists:
+        Log('Promo not found')
+        return False
 
     expired = IsPromoExpired(promo_id)
     if not expired:
         Log('Promo not over yet! Cannot claim funds yet')
         return False
+
+    context = GetContext()
+    min_headcount_key = concat(promo_id, 'min_headcount')
+    min_headcount = Get(context, min_headcount_key)
+    purchased_headcount_key = concat(promo_id, 'purchased_headcount')
+    purchased_headcount = Get(context, purchased_headcount_key)
+
+    if purchased_headcount < min_headcount:
+        Log('Not enough tickets were sold by deadline, buyers can claim refund')
+        return False
+
+    price_per_person_key = concat(promo_id, 'price_per_person')
+    price_per_person = Get(context, price_per_person_key)
+
+    funds_amount = purchased_headcount * price_per_person
+    # TODO: transfer funds to promo creator
 
     return True
 
@@ -289,12 +308,18 @@ def RefundPromo(buyer, promo_id):
         Log('Promo not found')
         return False
 
+    context = GetContext()
     expired = IsPromoExpired(promo_id)
-    if expired:
+
+    min_headcount_key = concat(promo_id, 'min_headcount')
+    min_headcount = Get(context, min_headcount_key)
+    purchased_headcount_key = concat(promo_id, 'purchased_headcount')
+    purchased_headcount = Get(context, purchased_headcount_key)
+
+    if expired and purchased_headcount > min_headcount:
         Log('Promo refund deadline has passed')
         return False
 
-    context = GetContext()
     buyer_key = concat(promo_id, buyer)
     refund_quantity = Get(context, buyer_key)
     if not refund_quantity:
@@ -310,8 +335,6 @@ def RefundPromo(buyer, promo_id):
     # TODO: refund to wallet
 
     # update purchased_headcount
-    purchased_headcount_key = concat(promo_id, 'purchased_headcount')
-    purchased_headcount = Get(context, purchased_headcount_key)
     purchased_headcount -= refund_quantity
     Put(context, purchased_headcount_key, purchased_headcount)
 
