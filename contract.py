@@ -2,141 +2,146 @@ from boa.blockchain.vm.Neo.Action import RegisterAction
 from boa.blockchain.vm.Neo.Blockchain import GetHeight, GetHeader
 from boa.blockchain.vm.Neo.Runtime import Log, GetTrigger, CheckWitness
 from boa.blockchain.vm.Neo.Storage import Get, GetContext, Put, Delete
+from boa.blockchain.vm.Neo.TriggerType import Application, Verification
 from boa.code.builtins import concat
 
 from utils.txio import get_asset_attachments
 from utils.promo import get_promo_storage_keys
 
 
+OWNER = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
 OnTransfer = RegisterAction('transfer', 'addr_from', 'addr_to', 'amount')
 
 
 def Main(operation, args):
-#     trigger = GetTrigger()
-#     if trigger == Verification():
-#         is_owner = CheckWitness(OWNER)
-#         if is_owner:
-#             return True
-#         return False
+    trigger = GetTrigger()
 
-    # elif trigger == Application():
-    # seller action
-    if operation == 'create':
-        if len(args) == 8:
-            creator = args[0]  # public key
-            promo_id = args[1]
-            title = args[2]
-            description = args[3]
-            price_per_person = args[4]  # price in GAS
-            expiration = args[5]
-            min_count = args[6]
-            max_count = args[7]
-
-            success = CreatePromo(creator, promo_id, title, description, price_per_person, expiration, min_count, max_count)
-
-            if success:
-                Log('Promo successfully created')
-                return True
-            else:
-                Log('Error in creating promo')
-                return False
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    # seller action
-    elif operation == 'delete':
-        if len(args) == 1:
-            promo_id = args[0]
-
-            authorize = IsPromoCreator(promo_id)
-            if authorize:
-                DeletePromo(promo_id)
-                Log('Promo successfully deleted')
-                return True
-            else:
-                Log('Permission denied')
-                return False
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    # seller action
-    elif operation == 'claim':
-        if len(args) == 1:
-            promo_id = args[0]
-
-            authorize = IsPromoCreator(promo_id)
-            if authorize:
-                success = ClaimFunds(promo_id)
-                if success:
-                    Log('Promo funds successfully claimed')
-                else:
-                    Log('Error in claiming funds')
-                    return True
-            else:
-                Log('Permission denied')
-                return False
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    # buyer action
-    elif operation == 'buy':
-        if len(args) == 3:
-            buyer = args[0]
-            promo_id = args[1]
-            quantity = args[2]
-
-            success = BuyPromo(buyer, promo_id, quantity)
-
-            if success:
-                Log('Promo successfully purchased')
-                return True
-            else:
-                Log('Error in purchasing promo')
-                return False
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    # buyer action
-    elif operation == 'refund':
-        if len(args) == 2:
-            buyer = args[0]
-            promo_id = args[1]
-
-            authorize = CheckWitness(buyer)
-            if authorize:
-                success = RefundPromo(buyer, promo_id)
-
-                if success:
-                    Log('Refund successful')
-                    return True
-                else:
-                    Log('Error in refund')
-                    return False
-            else:
-                Log('Permission denied')
-                return False
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    # buyer/seller action
-    elif operation == 'details':
-        if len(args) == 1:
-            promo_id = args[0]
-            Details(promo_id)
+    if trigger == Verification():
+        is_owner = CheckWitness(OWNER)
+        if is_owner:
             return True
-        else:
-            Log('incorrect number of arguments')
-            return False
-
-    else:
-        Log('operation not found')
         return False
 
+    elif trigger == Application():
+        # seller action
+        if operation == 'create':
+            if len(args) == 8:
+                creator = args[0]  # public key
+                promo_id = args[1]
+                title = args[2]
+                description = args[3]
+                price_per_person = args[4]  # price in GAS
+                expiration = args[5]
+                min_count = args[6]
+                max_count = args[7]
+
+                success = CreatePromo(creator, promo_id, title, description, price_per_person, expiration, min_count, max_count)
+
+                if success:
+                    Log('Promo successfully created')
+                    return True
+                else:
+                    Log('Error in creating promo')
+                    return False
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        # seller action
+        elif operation == 'delete':
+            if len(args) == 1:
+                promo_id = args[0]
+
+                authorize = IsPromoCreator(promo_id)
+                if authorize:
+                    DeletePromo(promo_id)
+                    Log('Promo successfully deleted')
+                    return True
+                else:
+                    Log('Permission denied')
+                    return False
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        # seller action
+        elif operation == 'claim':
+            if len(args) == 1:
+                promo_id = args[0]
+
+                authorize = IsPromoCreator(promo_id)
+                if authorize:
+                    success = ClaimFunds(promo_id)
+                    if success:
+                        Log('Promo funds successfully claimed')
+                    else:
+                        Log('Error in claiming funds')
+                        return True
+                else:
+                    Log('Permission denied')
+                    return False
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        # buyer action
+        elif operation == 'buy':
+            if len(args) == 3:
+                buyer = args[0]
+                promo_id = args[1]
+                quantity = args[2]
+
+                success = BuyPromo(buyer, promo_id, quantity)
+
+                if success:
+                    Log('Promo successfully purchased')
+                    return True
+                else:
+                    Log('Error in purchasing promo')
+                    return False
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        # buyer action
+        elif operation == 'refund':
+            if len(args) == 2:
+                buyer = args[0]
+                promo_id = args[1]
+
+                authorize = CheckWitness(buyer)
+                if authorize:
+                    success = RefundPromo(buyer, promo_id)
+
+                    if success:
+                        Log('Refund successful')
+                        return True
+                    else:
+                        Log('Error in refund')
+                        return False
+                else:
+                    Log('Permission denied')
+                    return False
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        # buyer/seller action
+        elif operation == 'details':
+            if len(args) == 1:
+                promo_id = args[0]
+                Details(promo_id)
+                return True
+            else:
+                Log('incorrect number of arguments')
+                return False
+
+        else:
+            Log('operation not found')
+            return False
+
+    return False
 
 def CreatePromo(creator, promo_id, title, description, price_per_person, expiration, min_count, max_count):
     """
@@ -147,7 +152,7 @@ def CreatePromo(creator, promo_id, title, description, price_per_person, expirat
         promo_id (str):
         title (str): can not contain spaces
         description (str): can not contain spaces
-        price_per_person (int): floats not supported in VM
+        price_per_person (int): floats not supported in VM, price in GAS
         expiration (int): use unix GMT time
         min_count (int):
         max_count (int):
