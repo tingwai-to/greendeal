@@ -1,3 +1,7 @@
+"""
+Credit goes to metachris for creating this resource in his python-smart-contract-workshop
+"""
+
 from boa.blockchain.vm.System.ExecutionEngine import GetScriptContainer, GetExecutingScriptHash
 from boa.blockchain.vm.Neo.Transaction import Transaction, GetReferences, GetOutputs,GetUnspentCoins
 from boa.blockchain.vm.Neo.Output import GetValue, GetAssetId, GetScriptHash
