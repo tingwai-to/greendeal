@@ -10,9 +10,14 @@
 
 ## Overview
 
-Smart contract for purchasing group discounts: if enough customers buy a promotion (promo), then the discount is available for all buyers. If not, then the funds are unlocked for customers to claim a refund and the seller will not be able to claim any it.
+Smart contract for purchasing group discounts: if enough customers buy a promotion (promo), then the discount becomes available for all buyers. If not enough are sold, then customers can get a refund and seller cannot claim any of the funds either.
 
 Creating this as a smart contract is useful because buyers and sellers do not need to rely on a trusted third party to setup the promotion and payment logistics. Also, since all transactions are recorded on the blockchain, buyers can easily prove payment to the sellers.
+
+* [Contract Address](#contract-address)
+* [Deploy](#deploy)
+* [Usage](#usage)
+* [Documentation](#documentation)
 
 ## Contract Address
 
@@ -20,9 +25,15 @@ Creating this as a smart contract is useful because buyers and sellers do not ne
 # TODO
 ```
 
+## Deploy
+
+```
+# TODO
+```
+
 ## Usage
 
-There are two types of users: sellers and buyers. Sellers are be the ones setting up their promo for sale. Buyers are the ones purchasing the promo. Function parameters and examples are explained below.
+There are two types of users: sellers and buyers. Sellers are the ones setting up their promo for sale. Buyers are the ones purchasing the promo. Function parameters and examples are explained below in Documentation.
 
 ### Seller Functions
 
@@ -33,7 +44,7 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 ### Buyer Functions
 
 * `buy` - purchase the promo
-* `refund` - refund and get your money back
+* `refund` - claim refund before promo deadline
 
 ### Misc Functions
 
@@ -47,17 +58,17 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     > `testinvoke <contract_hash> create ['<creator_public_key>','mydiscountcode','Opening-day-sale-for-ice-cream!','Discount-for-any-flavor',3,1546300800,5,8]`
 
-    Here a new promo is being created for ice cream. A seller would typically be using this command.
+    Here a new promo identified by `mydiscountcode` is being created for an ice cream sale. A seller would typically be using this command.
 
 * Parameters (in order):
 
     * **`creator_public_key`**: (public key)
 
-        Owner of the promo's public key. This public key is checked to determine whether the wallet used to invoke has permission to `delete` or `claim` a promo after it has been created.
+        Owner of the promo's public key. This public key is checked to determine whether the wallet used to invoke has permission to `delete` or `claim` a promo after it has been created. `creator_public_key` is explicitly stated to give flexibility, eg creating a promo on behalf of the seller.
 
     * **`promo_id`**: (str)
 
-        Can be any string you want but must be unique and cannot already be in use by another promo. As a seller, you'd probably want this to be a memorable string. Cannot contain spaces if invoking from neo-python.
+        Can be any string you want but must be unique and cannot already be in use by another promo. As a seller, you'd probably want this to be a memorable string for marketing purposes. Cannot contain spaces if invoking from neo-python.
 
     * **`title`**: (str)
 
@@ -77,7 +88,7 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     * **`min_count`**: (int)
 
-        Minimum number of "seats" to be sold in order for the seller to claim their funds. If `min_count` not met by expiration time, buyers can get a refund.
+        Minimum number of "seats" to be sold in order for the seller to claim their funds. If `min_count` is not met by expiration time, buyers can get a refund.
 
     * **`max_count`**: (int)
 
@@ -89,7 +100,7 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     > `testinvoke <contract_hash> delete ['mydiscountcode']`
 
-    Here a promo by the `promo_id` of `mydiscountcode` is being deleted. Promo can only be deleted if wallet's public key used to invoke matches the public key used in `create`
+    Here a promo `mydiscountcode` is being deleted. Promo can only be deleted if wallet's public key used to invoke matches the public key used in `create`.
 
 * Parameters (in order):
 
@@ -105,6 +116,12 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     Here a seller can claim funds from promo `mydiscountcode` if the `min_count` and `expiration` is met. Promo can only be claimed if wallet's public key used to invoke matches the public key used in `create`.
 
+* Parameters (in order):
+
+    * **`promo_id`**: (str)
+
+        Desired promo to claim funds.
+
 ### `buy`
 
 * Example:
@@ -117,15 +134,15 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     * **`buyer_public_key`**: (public key)
 
-        This public key is tied to the `quantity` of tickets purchased. `buyer_public_key` is explicitly stated to give flexibility, eg if someone wants to gift the "seats" to another person. Public key is also checked for permission during `refund`.
+        This public key is tied to all the "seats" purchased. `buyer_public_key` is explicitly stated to give flexibility, eg if someone wants to gift the "seats" to another person. Public key is also checked for permission during `refund`.
 
     * **`promo_id`**: (str)
 
         Desired promo to purchase.
 
-    * **`quantity`** (int)
+    * **`quantity`**: (int)
 
-        Desired number of "seats" to purchase. Cannot exceed the number of remaining "seats" left (contract will throw error if exceeded).
+        Desired number of "seats" to purchase. Cannot exceed the number of remaining "seats" left (contract will return False if exceeded).
 
 ### `refund`
 
@@ -133,13 +150,13 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     > `testinvoke <contract_hash> refund ['<buyer_public_key>','mydiscountcode']`
 
-    Here a user requests a refund for their purchase. All "seats" will be refunded. Refund will only pass if the expiration date has not passed.
+    Here a user requests a refund on `mydiscountcode` for their purchase. All "seats" will be refunded. Refund will only pass if the expiration date has not passed.
 
-    * **`buyer_public_key`** (public key)
+    * **`buyer_public_key`**: (public key)
 
-        Checks is wallet used to invoke has permission to perform a `refund`.
+        Used to check if wallet used to invoke has permission to perform a `refund`.
 
-    * **`promo_id`** (str)
+    * **`promo_id`**: (str)
 
         Desired promo to claim a refund.
 
@@ -149,7 +166,7 @@ There are two types of users: sellers and buyers. Sellers are be the ones settin
 
     >  `testinvoke <contract_hash> details ['mydiscountcode']`
 
-    Get the details of the promo `mydiscountcode`. Information returned: creator, title, description, price/person, expiration date, minimum count, maximum count, purchased count.
+    Get the details of the promo `mydiscountcode`. Information returned: creator, title, description, price/person, expiration date, minimum count, maximum count, purchased count. Since you can preview the output by using `testinvoke`, you do not need to spend real gas to get the details.
 
 * Example output:
     ```
