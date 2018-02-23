@@ -79,7 +79,7 @@ def Main(operation, args):
                         Log('Promo funds successfully claimed')
                     else:
                         Log('Error in claiming funds')
-                        return True
+                        return False
                 else:
                     Log('Permission denied')
                     return False

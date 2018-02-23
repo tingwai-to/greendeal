@@ -129,7 +129,7 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 
     > `testinvoke <contract_hash> claim ['mypromocode']`
 
-    Here a seller can claim funds from promo `mypromocode` if the `min_count` and `expiration` is met. Promo can only be claimed if wallet's public key used to invoke matches the public key used in `create`.
+    Here a seller can claim funds from promo `mypromocode` if the `min_count` and `expiration` is met. Funds can only be claimed if wallet's public key used to invoke matches the public key used in `create`.
 
 * Parameters (in order):
 
