@@ -12,6 +12,8 @@ from utils.promo import get_promo_storage_keys
 OWNER = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
 OnTransfer = RegisterAction('transfer', 'addr_from', 'addr_to', 'amount')
+OnRefund = RegisterAction('refund', 'addr_to', 'amount')
+OnClaim = RegisterAction('claim', 'addr_to', 'amount')
 
 
 def Main(operation, args):
@@ -356,7 +358,7 @@ def ClaimFunds(promo_id):
 
     attachment = get_asset_attachments()
     funds_amount = purchased_count * price_per_person
-    OnTransfer(attachment.receiver_addr, attachment.sender_addr, funds_amount)
+    OnClaim(attachment.sender_addr, funds_amount)
 
     return True
 
@@ -410,7 +412,7 @@ def RefundPromo(buyer, promo_id):
 
     refund_amount = refund_quantity * price_per_person
     attachment = get_asset_attachments()
-    OnTransfer(attachment.receiver_addr, attachment.sender_addr, refund_amount)
+    OnRefund(attachment.sender_addr, refund_amount)
 
     # update purchased_count
     purchased_count -= refund_quantity
