@@ -149,17 +149,22 @@ def CreatePromo(creator, promo_id, title, description, price_per_person, expirat
 
     Args:
         creator (str): public key
-        promo_id (str):
+        promo_id (str): promo unique id
         title (str): can not contain spaces
         description (str): can not contain spaces
         price_per_person (int): floats not supported in VM, price in GAS
         expiration (int): use unix GMT time
-        min_count (int):
-        max_count (int):
+        min_count (int): minimum number of tickets to be sold
+        max_count (int): maximum number of tickets that can be sold
 
     Returns:
         (bool): True if promo created successfully
     """
+
+    #
+    ### Checks for if args are valid and create conditions are met
+    #
+
     if price_per_person < 0:
         Log('price_per_person must be positive')
         return False
@@ -186,6 +191,10 @@ def CreatePromo(creator, promo_id, title, description, price_per_person, expirat
         Log('promo_id is already taken')
         return False
 
+    #
+    ### Create promo
+    #
+
     promo = get_promo_storage_keys(promo_id)
 
     context = GetContext()
@@ -209,14 +218,16 @@ def BuyPromo(buyer, promo_id, quantity):
 
     Args:
         buyer (str): buyer's public key
-        promo_id (str):
-        quantity (int):
+        promo_id (str): promo unique id
+        quantity (int): number of tickets to be bought
 
     Returns:
         (bool): True if promo purchased successfully
     """
 
-    ### Series of checks to see if args are valid
+    #
+    ### Checks for if args are valid and purchase conditions are met
+    #
 
     promo_exists = IsPromoExist(promo_id)
     if not promo_exists:
@@ -262,7 +273,9 @@ def BuyPromo(buyer, promo_id, quantity):
         Log('Insufficient funds')
         return False
 
-    ### Place purchase logic
+    #
+    ### Place purchase
+    #
 
     OnTransfer(attachment.sender_addr, attachment.receiver_addr, attachment.gas_attached)
 
@@ -277,6 +290,16 @@ def BuyPromo(buyer, promo_id, quantity):
 
 
 def DeletePromo(promo_id):
+    """
+    Delete promo identified by promo_id
+
+    Args:
+        promo_id (str): promo unique id
+
+    Returns:
+        (bool): True if promo deleted successfully
+    """
+
     expired = IsPromoExpired(promo_id)
     if expired:
         Log('Promo has already finished, can no longer delete it!')
@@ -289,6 +312,22 @@ def DeletePromo(promo_id):
 
 
 def ClaimFunds(promo_id):
+    """
+    Creator of promo can claim funds from promo_id if the min_count and
+    expiration conditions are met. Funds can only be claimed if wallet's public
+    key used to invoke matches the public key used in create.
+
+    Args:
+        promo_id (str): promo unique id
+
+    Returns:
+        (bool): True if promo claimed successfully
+    """
+
+    #
+    ### Checks for if args are valid and claim conditions are met
+    #
+
     promo_exists = IsPromoExist(promo_id)
     if not promo_exists:
         Log('Promo not found')
@@ -309,6 +348,10 @@ def ClaimFunds(promo_id):
         Log('Not enough tickets were sold by deadline, buyers can claim refund')
         return False
 
+    #
+    ### Claim funds
+    #
+
     price_per_person = Get(context, promo.price_per_person_key)
 
     attachment = get_asset_attachments()
@@ -324,11 +367,16 @@ def RefundPromo(buyer, promo_id):
 
     Args:
         buyer (str): buyer's public key
-        promo_id (str):
+        promo_id (str): promo unique id
 
     Returns:
         (bool): True if successfully refunded
     """
+
+    #
+    ### Checks for if args are valid and refund conditions are met
+    #
+
     promo_exists = IsPromoExist(promo_id)
     if not promo_exists:
         Log('Promo not found')
@@ -352,6 +400,10 @@ def RefundPromo(buyer, promo_id):
         Log('No purchases were made using given public key')
         return False
 
+    #
+    ### Refund tickets
+    #
+
     Delete(context, buyer_key)
 
     price_per_person = Get(context, promo.price_per_person_key)
@@ -370,15 +422,16 @@ def RefundPromo(buyer, promo_id):
 def Details(promo_id):
     """
     Prints details of specified promo:
-    Creator, Title, Description, Price/person, Expiration Date, Min count,
+    Creator, Title, Description, Price/person, Expiration date, Min count,
     Max count, Purchased count
 
     Args:
-        promo_id (str):
+        promo_id (str): promo unique id
 
     Returns:
         (bool): True if promo found and details successfully printed
     """
+    
     promo_exists = IsPromoExist(promo_id)
     if not promo_exists:
         Log('Promo not found')
@@ -396,15 +449,21 @@ def Details(promo_id):
     max_count = Get(context, promo.max_count_key)
     purchased_count = Get(context, promo.purchased_count_key)
 
-    Log('Creator, Title, Description, Price/person, Expiration Date, '
-        'Minimum count, Maximum count, Purchased count')
+    Log('Creator public key')
     Log(creator)
+    Log('Title')
     Log(title)
+    Log('Description')
     Log(description)
+    Log('Price/person (gas)')
     Log(price_per_person)
+    Log('Expiration date')
     Log(expiration)
+    Log('Minimum count')
     Log(min_count)
+    Log('Maximum count')
     Log(max_count)
+    Log('Purchased count')
     Log(purchased_count)
 
     return True
@@ -415,7 +474,7 @@ def IsPromoCreator(promo_id):
     Check if smart contract invoker is creator of promo
 
     Args:
-        promo_id (str):
+        promo_id (str): promo unique id
 
     Returns:
         (bool): True if contract invoker is creator of promo
@@ -437,7 +496,7 @@ def IsPromoExpired(promo_id):
     Check if promo has expired or not
 
     Args:
-        promo_id (str):
+        promo_id (str): promo unique id
 
     Returns:
         (bool): True if promotion has expired
@@ -456,10 +515,10 @@ def IsPromoExpired(promo_id):
 
 def IsPromoExist(promo_id):
     """
-    Check if promo is in Storage
+    Check if promo identified by promo_id already exists
 
     Args:
-        promo_id (str):
+        promo_id (str): promo unique id
 
     Returns:
         (bool): True if promo_id already exists in storage
