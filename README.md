@@ -10,9 +10,9 @@
 
 ## Overview
 
-Smart contract for purchasing group discounts: if enough customers buy a promotion (promo), then the discount becomes available for all buyers. If not enough are sold, then customers can get a refund and seller cannot claim any of the funds.
+Smart contract for purchasing group discounts: if enough customers buy a promotion (promo), then the discount becomes available for all buyers. If not enough are sold, then customers can get a refund. This means as a seller, you can be sure that you will be paid if enough customers express interest. And as a buyer, you can be sure that you will get your money back if not enough people commit to buying.
 
-Creating this as a smart contract is useful because buyers and sellers do not need to rely on a trusted third party to setup the promotion and payment logistics. Also, since all transactions are recorded on the blockchain, buyers can easily prove payment to the sellers.
+Creating this as a smart contract is useful because buyers and sellers do not need to rely on a trusted third party to handle the promotion and payment logistics. Also, since all transactions are recorded on the blockchain, buyers can easily prove payment to the sellers.
 
 * [Contract Address](#contract-address)
 * [Example](#example)
@@ -28,21 +28,21 @@ Creating this as a smart contract is useful because buyers and sellers do not ne
 
 ## Example
 
-Example testinvoke's for interacting with a deployed contract. Detailed explaination found in [Documentation](#documentation).
+Example scenario for interacting with Green Deal. Detailed explanation found in [Documentation](#documentation).
 
-*(Seller)* Create a promo identified by `mypromocode`:
+**_(Seller)_** Create a promo identified by `mypromocode`:
 
     testinvoke <contract_hash> create ['<creator_public_key>','mypromocode','Opening-day-sale-for-ice-cream!','Discount-for-any-flavor',3,1546300800,5,8]
 
-*(Buyer)* Buy 2 tickets for `mypromocode`, each seat costs 3 gas so 6 gas is attached:
+**_(Buyer)_** Buy 2 tickets for `mypromocode`, each ticket costs 3 gas so 6 gas is attached:
 
     testinvoke <contract_hash> buy ['<buyer_public_key>','mypromocode',2] --attach-gas=6
 
-*(Buyer)* Refund your tickets if you change your mind:
+**_(Buyer)_** Refund your tickets if you change your mind:
 
     testinvoke <contract_hash> refund ['<buyer_public_key>','mypromocode']
 
-*(Seller)* Claim your funds if enough tickets were sold:
+**_(Seller)_** Claim your funds if enough tickets were sold:
 
     testinvoke <contract_hash> claim ['mypromocode']
 
@@ -59,7 +59,7 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 ### Buyer Functions
 
 * [`buy`](#buy) - purchase the promo
-* [`refund`](#refund) - claim refund before promo deadline
+* [`refund`](#refund) - get refund on purchase
 
 ### Misc Functions
 
@@ -73,7 +73,7 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 
     > `testinvoke <contract_hash> create ['<creator_public_key>','mypromocode','Opening-day-sale-for-ice-cream!','Discount-for-any-flavor',3,1546300800,5,8]`
 
-    Here a new promo identified by `mypromocode` is being created for an ice cream sale. A seller would typically be using this command.
+    Here a new promo identified by `mypromocode` is being created for an ice cream sale, promo expires on Jan 1, 2019 (1546300800 unix time). A seller would typically be using this command.
 
 * Parameters (in order):
 
@@ -109,6 +109,10 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 
         Maximum number of tickets that can be sold.
 
+* Success message:
+
+    > Promo created successfully
+
 ### `delete`
 
 * Example:
@@ -123,6 +127,10 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 
         Desired promo to delete.
 
+* Success message:
+
+    > Promo deleted successfully
+
 ### `claim`
 
 * Example:
@@ -136,6 +144,10 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
     * **`promo_id`**: (str)
 
         Desired promo to claim funds.
+
+* Success message:
+
+    > Promo funds claimed successfully
 
 ### `buy`
 
@@ -159,13 +171,19 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
 
         Desired number of tickets to purchase. Cannot exceed the number of remaining tickets left (contract will return False if exceeded).
 
+* Success messsage:
+
+    > Promo purchased successfully
+
 ### `refund`
 
 * Example:
 
     > `testinvoke <contract_hash> refund ['<buyer_public_key>','mypromocode']`
 
-    Here a user requests a refund on `mypromocode` for their purchase. All tickets will be refunded. Refund will only pass if the expiration date has not passed.
+    Here a user requests a refund on `mypromocode` for their purchase. All tickets will be refunded. Refunds can still be issued if promos are deleted. But refunds will not be issued if the deadline has passed AND minimum number of tickets have been sold.
+
+* Parameters (in order):
 
     * **`buyer_public_key`**: (public key)
 
@@ -174,6 +192,10 @@ There are two types of users: sellers and buyers. Sellers are the ones setting u
     * **`promo_id`**: (str)
 
         Desired promo to claim a refund.
+
+* Success message:
+
+    > Promo refunded successfully
 
 ### `details`
 
