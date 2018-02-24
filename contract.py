@@ -3,6 +3,7 @@ from boa.blockchain.vm.Neo.Blockchain import GetHeight, GetHeader
 from boa.blockchain.vm.Neo.Runtime import Log, GetTrigger, CheckWitness
 from boa.blockchain.vm.Neo.Storage import Get, GetContext, Put, Delete
 from boa.blockchain.vm.Neo.TriggerType import Application, Verification
+from boa.blockchain.vm.System.ExecutionEngine import GetCallingScriptHash
 from boa.code.builtins import concat
 
 from utils.txio import get_asset_attachments
@@ -41,7 +42,7 @@ def Main(operation, args):
                 success = CreatePromo(creator, promo_id, title, description, price_per_person, expiration, min_count, max_count)
 
                 if success:
-                    Log('Promo successfully created')
+                    Log('Promo created successfully')
                     return True
                 else:
                     Log('Error in creating promo')
@@ -57,9 +58,13 @@ def Main(operation, args):
 
                 authorize = IsPromoCreator(promo_id)
                 if authorize:
-                    DeletePromo(promo_id)
-                    Log('Promo successfully deleted')
-                    return True
+                    success = DeletePromo(promo_id)
+                    if success:
+                        Log('Promo deleted successfully')
+                        return True
+                    else:
+                        Log('Error in deleting promo')
+                        return False
                 else:
                     Log('Permission denied')
                     return False
@@ -76,7 +81,7 @@ def Main(operation, args):
                 if authorize:
                     success = ClaimFunds(promo_id)
                     if success:
-                        Log('Promo funds successfully claimed')
+                        Log('Promo funds claimed successfully')
                     else:
                         Log('Error in claiming funds')
                         return False
@@ -97,7 +102,7 @@ def Main(operation, args):
                 success = BuyPromo(buyer, promo_id, quantity)
 
                 if success:
-                    Log('Promo successfully purchased')
+                    Log('Promo purchased successfully')
                     return True
                 else:
                     Log('Error in purchasing promo')
@@ -117,7 +122,7 @@ def Main(operation, args):
                     success = RefundPromo(buyer, promo_id)
 
                     if success:
-                        Log('Refund successful')
+                        Log('Promo refunded successfully')
                         return True
                     else:
                         Log('Error in refund')
@@ -164,7 +169,7 @@ def CreatePromo(creator, promo_id, title, description, price_per_person, expirat
     """
 
     #
-    ### Checks for if args are valid and create conditions are met
+    # Checks for if args are valid and create conditions are met
     #
 
     if price_per_person < 0:
@@ -194,7 +199,7 @@ def CreatePromo(creator, promo_id, title, description, price_per_person, expirat
         return False
 
     #
-    ### Create promo
+    # Create promo
     #
 
     promo = get_promo_storage_keys(promo_id)
@@ -228,7 +233,7 @@ def BuyPromo(buyer, promo_id, quantity):
     """
 
     #
-    ### Checks for if args are valid and purchase conditions are met
+    # Checks for if args are valid and purchase conditions are met
     #
 
     promo_exists = IsPromoExist(promo_id)
@@ -276,7 +281,7 @@ def BuyPromo(buyer, promo_id, quantity):
         return False
 
     #
-    ### Place purchase
+    # Place purchase
     #
 
     OnTransfer(attachment.sender_addr, attachment.receiver_addr, attachment.gas_attached)
@@ -327,7 +332,7 @@ def ClaimFunds(promo_id):
     """
 
     #
-    ### Checks for if args are valid and claim conditions are met
+    # Checks for if args are valid and claim conditions are met
     #
 
     promo_exists = IsPromoExist(promo_id)
@@ -351,14 +356,14 @@ def ClaimFunds(promo_id):
         return False
 
     #
-    ### Claim funds
+    # Claim funds
     #
 
     price_per_person = Get(context, promo.price_per_person_key)
 
-    attachment = get_asset_attachments()
     funds_amount = purchased_count * price_per_person
-    OnClaim(attachment.sender_addr, funds_amount)
+    claim_address = GetCallingScriptHash()
+    OnClaim(claim_address, funds_amount)
 
     return True
 
@@ -376,26 +381,25 @@ def RefundPromo(buyer, promo_id):
     """
 
     #
-    ### Checks for if args are valid and refund conditions are met
+    # Checks for if args are valid and refund conditions are met
     #
-
-    promo_exists = IsPromoExist(promo_id)
-    if not promo_exists:
-        Log('Promo not found')
-        return False
 
     promo = get_promo_storage_keys(promo_id)
 
+    promo_exists = IsPromoExist(promo_id)
     expired = IsPromoExpired(promo_id)
+
     context = GetContext()
     min_count = Get(context, promo.min_count_key)
     purchased_count = Get(context, promo.purchased_count_key)
+    count_met = purchased_count >= min_count
 
-    # Cannot issue refund if minimum number of buyers has been met past deadline
-    if expired and purchased_count > min_count:
-        Log('Promo refund deadline has passed')
-        return False
-
+    if promo_exists:
+        # Cannot issue refund if minimum number of tickets has been sold past deadline
+        if expired and count_met:
+            Log('Refund no longer allowed, promo refund deadline has passed and the minimum number of tickets has been sold')
+            return False
+    
     buyer_key = concat(promo_id, buyer)
     refund_quantity = Get(context, buyer_key)
     if not refund_quantity:
@@ -403,7 +407,7 @@ def RefundPromo(buyer, promo_id):
         return False
 
     #
-    ### Refund tickets
+    # Refund tickets
     #
 
     Delete(context, buyer_key)
@@ -411,8 +415,8 @@ def RefundPromo(buyer, promo_id):
     price_per_person = Get(context, promo.price_per_person_key)
 
     refund_amount = refund_quantity * price_per_person
-    attachment = get_asset_attachments()
-    OnRefund(attachment.sender_addr, refund_amount)
+    refund_address = GetCallingScriptHash()
+    OnRefund(refund_address, refund_amount)
 
     # update purchased_count
     purchased_count -= refund_quantity
