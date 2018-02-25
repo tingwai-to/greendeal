@@ -14,16 +14,18 @@ Smart contract for purchasing group discounts: if enough customers buy a promoti
 
 Creating this as a smart contract is useful because buyers and sellers do not need to rely on a trusted third party to handle the promotion and payment logistics. Also, since all transactions are recorded on the blockchain, buyers can easily prove payment to the sellers.
 
-* [Contract Address](#contract-address)
+* [Script Hash](#script-hash)
 * [Example](#example)
 * [Usage](#usage)
 * [Documentation](#documentation)
 * [Deploy](#deploy)
 
-## Contract Address
+## Script Hash
+
+City of Zion testnet:
 
 ```
-# TODO
+7f1fd78c94bf8509947fce77eb275c99360e9756
 ```
 
 ## Example
