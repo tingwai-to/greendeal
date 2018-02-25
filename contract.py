@@ -403,7 +403,7 @@ def RefundPromo(buyer, promo_id):
     buyer_key = concat(promo_id, buyer)
     refund_quantity = Get(context, buyer_key)
     if not refund_quantity:
-        Log('No purchases were made using given public key')
+        Log('No purchases found using given public key and promo_id')
         return False
 
     #
