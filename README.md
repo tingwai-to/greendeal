@@ -30,7 +30,7 @@ City of Zion testnet:
 
 ## Example
 
-Example scenario for interacting with Green Deal. Detailed explanation found in [Documentation](#documentation).
+[**Video tutorial**](https://drive.google.com/open?id=14bXtYyj8lOlu1n1z_MIXoi41tUPZwqgR) for using Green Deal. Detailed explanation found in [Documentation](#documentation).
 
 **_(Seller)_** Create a promo identified by `mypromocode`:
 
