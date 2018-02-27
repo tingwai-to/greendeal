@@ -5,12 +5,12 @@
 <h1 align="center">Green Deal</h1>
 
 <p align="center">
-    NEO smart contract for purchasing group discounts
+    NEO smart contract: decentralized marketplace for group purchasing
 </p>
 
 ## Overview
 
-Smart contract for purchasing group discounts: if enough customers buy a promotion (promo), then the discount becomes available for all buyers. If not enough are sold, then customers can get a refund. This means as a seller, you can be sure that you will be paid if enough customers express interest. And as a buyer, you can be sure that you will get your money back if not enough people commit to buying.
+A decentralized marketplace for group purchasing where buyers and sellers can create and buy promotions. If enough customers buy a promotion (promo), then the promotion becomes available for all buyers. If not enough are sold, then customers can get a refund. This means as a seller, you can be sure that you will be paid if enough customers express interest. And as a buyer, you can be sure that you will get your money back if not enough people commit to buying.
 
 Creating this as a smart contract is useful because buyers and sellers do not need to rely on a trusted third party to handle the promotion and payment logistics. Also, since all transactions are recorded on the blockchain, buyers can easily prove payment to the sellers.
 
@@ -22,7 +22,7 @@ Creating this as a smart contract is useful because buyers and sellers do not ne
 
 ## Script Hash
 
-City of Zion testnet:
+Deployed on City of Zion testnet:
 
 ```
 7f1fd78c94bf8509947fce77eb275c99360e9756
