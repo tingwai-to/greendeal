@@ -22,7 +22,7 @@ Creating this as a smart contract is useful because buyers and sellers do not ne
 
 ## Script Hash
 
-Deployed on City of Zion testnet:
+Deployed on NEO testnet and City of Zion testnet:
 
 ```
 7f1fd78c94bf8509947fce77eb275c99360e9756
